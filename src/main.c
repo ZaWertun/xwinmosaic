@@ -317,7 +317,7 @@ int main (int argc, char **argv)
   gtk_widget_show_all (window);
   gtk_widget_hide (search);
   gtk_window_present (GTK_WINDOW (window));
-  gtk_window_set_keep_above (GTK_WINDOW (window), TRUE);
+  //  gtk_window_set_keep_above (GTK_WINDOW (window), TRUE);
   
   if (options.persistent) {
     XSelectInput (gdk_x11_get_default_xdisplay (),
@@ -604,11 +604,15 @@ static gboolean on_key_press (GtkWidget *widget, GdkEventKey *event, gpointer da
   case GDK_Down:
     break;
   case GDK_Tab:
-    tab_event(FALSE);
-    return TRUE;
+    if(!(event->state & GDK_MOD4_MASK)) {
+      tab_event(FALSE);
+      return TRUE;
+    }
   case GDK_ISO_Left_Tab:
-    tab_event(TRUE);
-    return TRUE;
+    if(!(event->state & GDK_MOD4_MASK)) {
+      tab_event(TRUE);
+      return TRUE;
+    }
     break;
   case GDK_End:
     if (options.permissive) {
@@ -776,8 +780,12 @@ static GdkFilterReturn event_filter (XEvent *xevent, GdkEvent *event, gpointer d
 
   if (xevent->type == KeyPress) {
     if(xevent->xkey.keycode == 23) {
-      tab_event(FALSE);
-      uninstall_alt_tab_hook();
+      if(xevent->xkey.state == Mod4Mask) {
+        tab_event(FALSE);
+      }
+      if(xevent->xkey.state == (Mod4Mask|ShiftMask))
+        tab_event(TRUE);
+        uninstall_alt_tab_hook();
     }
   }
   return GDK_FILTER_CONTINUE;
@@ -1181,7 +1189,6 @@ void tab_event (gboolean shift) //FIXME: put prototype for this function
     draw_mosaic (GTK_LAYOUT (layout), boxes, wsize, 0,
                  options.box_width, options.box_height);
     gtk_widget_show (window);
-    //    gtk_window_set_keep_above (GTK_WINDOW (window), TRUE);
   }
 }
 
