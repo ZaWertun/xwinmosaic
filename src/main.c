@@ -210,12 +210,16 @@ int main (int argc, char **argv)
   if (options.color_file)
     read_colors ();
 
-#ifdef WIN32
+  //#ifdef WIN32
   if (options.persistent) {
-      g_printerr ("Installing Alt-Tab hook");
+#ifdef WIN32
+      g_printerr ("Installing Alt-Tab hook\n");
+#else
+      g_printerr ("Installing Super-Tab hook\n");
+#endif
       install_alt_tab_hook();
   }
-#endif
+  //#endif
 
   window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_window_set_title (GTK_WINDOW (window), "XWinMosaic");
@@ -302,6 +306,8 @@ int main (int argc, char **argv)
   g_signal_connect_swapped(G_OBJECT (window), "destroy",
         		   G_CALLBACK(gtk_main_quit), NULL);
 
+  
+
   if (!options.screenshot) {
     window_shape_bitmap = (GdkDrawable *) gdk_pixmap_new (NULL, width, height, 1);
     draw_mask (window_shape_bitmap, 0);
@@ -311,9 +317,15 @@ int main (int argc, char **argv)
   gtk_widget_show_all (window);
   gtk_widget_hide (search);
   gtk_window_present (GTK_WINDOW (window));
+  gtk_window_set_keep_above (GTK_WINDOW (window), TRUE);
   
-  if (options.persistent)
+  if (options.persistent) {
+    XSelectInput (gdk_x11_get_default_xdisplay (),
+		  gdk_x11_get_default_root_xwindow (),
+		  KeyPressMask);
+    //    gdk_window_add_filter (NULL, (GdkFilterFunc) event_filter, NULL);
     gtk_widget_hide (window);
+  }
 
   GdkWindow *gdk_window = gtk_widget_get_window (GTK_WIDGET (window));
 #ifdef X11
@@ -437,8 +449,11 @@ static void on_rect_click (GtkWidget *widget, gpointer data)
   } else {
     puts (mosaic_window_box_get_name (box));
   }
-  if (options.persistent)
+  if (options.persistent) {
     gtk_widget_hide (window);
+    install_alt_tab_hook ();
+  }
+  
   else
     gtk_main_quit ();
 }
@@ -568,8 +583,10 @@ static gboolean on_key_press (GtkWidget *widget, GdkEventKey *event, gpointer da
       gtk_widget_hide (search);
       mosaic_search_box_set_text (MOSAIC_SEARCH_BOX (search), "\0");
     } else {
-      if (options.persistent)
+      if (options.persistent) {
         gtk_widget_hide (window);
+        install_alt_tab_hook ();
+      }
       else
         gtk_main_quit ();
     }
@@ -757,6 +774,12 @@ static GdkFilterReturn event_filter (XEvent *xevent, GdkEvent *event, gpointer d
     }
   }
 
+  if (xevent->type == KeyPress) {
+    if(xevent->xkey.keycode == 23) {
+      tab_event(FALSE);
+      uninstall_alt_tab_hook();
+    }
+  }
   return GDK_FILTER_CONTINUE;
 }
 #endif
@@ -1158,5 +1181,7 @@ void tab_event (gboolean shift) //FIXME: put prototype for this function
     draw_mosaic (GTK_LAYOUT (layout), boxes, wsize, 0,
                  options.box_width, options.box_height);
     gtk_widget_show (window);
+    //    gtk_window_set_keep_above (GTK_WINDOW (window), TRUE);
   }
 }
+

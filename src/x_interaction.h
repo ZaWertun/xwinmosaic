@@ -61,5 +61,7 @@ Window* sorted_windows_list (Window *myown, Window *active_win, int *nitems);
 void switch_to_window (Window win);
 GdkPixbuf *get_window_icon (Window win, guint req_width, guint req_height);
 gboolean already_opened ();
+void install_alt_tab_hook ();
+void uninstall_alt_tab_hook ();
 
 #endif /* X_INTERACTION_H */

@@ -366,3 +366,25 @@ gboolean already_opened ()
   XFree (win_list);
   return opened;
 }
+
+void install_alt_tab_hook ()
+{
+  Display *dpy = (Display *)gdk_x11_get_default_xdisplay ();
+  Window root = DefaultRootWindow(dpy);
+  
+  int keycode = XKeysymToKeycode(dpy, XK_Tab);
+  
+  XGrabKey(dpy, keycode, Mod4Mask, root, False, GrabModeAsync, GrabModeAsync);
+  XGrabKey(dpy, keycode, Mod4Mask|ShiftMask, root, False, GrabModeAsync, GrabModeAsync);
+}
+
+void uninstall_alt_tab_hook ()
+{
+  Display *dpy = (Display *)gdk_x11_get_default_xdisplay ();
+  Window root = DefaultRootWindow(dpy);
+  
+  int keycode = XKeysymToKeycode(dpy, XK_Tab);
+  
+  XUngrabKey(dpy, keycode, Mod4Mask, root);
+  XUngrabKey(dpy, keycode, Mod4Mask|ShiftMask, root);
+}
