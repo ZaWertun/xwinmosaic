@@ -74,6 +74,7 @@ static struct {
   gint center_x;
   gint center_y;
   gchar *color_file;
+  Position icon_position;
 } options;
 
 typedef struct {
@@ -488,7 +489,7 @@ static void update_box_list ()
     Entry entry;
     for (int i = 0; i < wsize; i++) {
       if (!options.read_stdin) {
-	boxes[i] = mosaic_window_box_new_with_xwindow (wins[i]);
+	boxes[i] = mosaic_window_box_new_with_xwindow (options.icon_position, options.icon_size, wins[i]);
 #ifdef X11
 	mosaic_window_box_set_show_desktop (MOSAIC_WINDOW_BOX (boxes[i]), options.show_desktop);
 #endif
@@ -497,10 +498,10 @@ static void update_box_list ()
 	  mosaic_window_box_setup_icon_from_wm (MOSAIC_WINDOW_BOX(boxes[i]), options.icon_size, options.icon_size);
       } else {
         if(!options.format)
-          boxes[i] = mosaic_window_box_new_with_name (in_items[i]);
+          boxes[i] = mosaic_window_box_new_with_name (options.icon_position, options.icon_size, in_items[i]);
         else {
           if(parse_format(&entry, in_items[i])){
-            boxes[i] = mosaic_window_box_new_with_name(entry.label);
+            boxes[i] = mosaic_window_box_new_with_name(options.icon_position, options.icon_size, entry.label);
             if((entry.desktop)>=0) {//g_printerr("Custom background digits not implemented yet\n");
               mosaic_window_box_set_desktop(MOSAIC_WINDOW_BOX(boxes[i]), entry.desktop-1);
               mosaic_window_box_set_show_desktop (MOSAIC_WINDOW_BOX(boxes[i]), TRUE);
@@ -519,7 +520,7 @@ static void update_box_list ()
               mosaic_window_box_set_opt_name(MOSAIC_WINDOW_BOX(boxes[i]), entry.opt_name);
             }
           } else {
-            boxes[i] = mosaic_window_box_new_with_name("Parse error");
+            boxes[i] = mosaic_window_box_new_with_name(options.icon_position, options.icon_size, "Parse error");
           }
         }
       }
@@ -1032,9 +1033,25 @@ static void read_config ()
       options.at_pointer = g_key_file_get_boolean (config, group, "at_pointer", &error);
     if (g_key_file_has_key (config, group, "color_file", &error))
       options.color_file = g_key_file_get_string (config, group, "color_file", &error);
+    if (g_key_file_has_key (config, group, "icon_position", &error)) {
+      gchar *tmp = g_key_file_get_string (config, group, "icon_position", &error);
+      if (strcmp(tmp, "top") == 0) {
+        options.icon_position = TOP;
+      }
+    }
   }
 
   g_key_file_free (config);
+}
+
+static const char *position_to_str(Position position)
+{
+  switch (position) {
+  case TOP:
+    return "top";
+  default:
+    return "left";
+  }
 }
 
 static void write_default_config ()
@@ -1060,6 +1077,8 @@ static void write_default_config ()
       fprintf (config, "screenshot_offset_x = %d\n", options.screenshot_offset_x);
       fprintf (config, "screenshot_offset_y = %d\n", options.screenshot_offset_y);
       fprintf (config, "at_pointer = %s\n", (options.at_pointer) ? "true" : "false");
+      fprintf (config, "# icon_position can be one of: top, left");
+      fprintf (config, "icon_position = %s\n", position_to_str (options.icon_position));
       fprintf (config, "# color_file = /path/to/file\n");
       fclose (config);
       }

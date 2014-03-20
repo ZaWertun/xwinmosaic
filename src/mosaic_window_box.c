@@ -132,6 +132,8 @@ static GObject*	mosaic_window_box_constructor (GType gtype,
   box->has_icon = FALSE;
   box->colorize = TRUE;
   box->color_offset = 0;
+  box->icon_size = 0;
+  box->icon_position = LEFT;
   mosaic_window_box_create_colors (box);
 
   return obj;
@@ -142,14 +144,22 @@ GtkWidget* mosaic_window_box_new (void)
   return g_object_new (MOSAIC_TYPE_WINDOW_BOX, "is-window", FALSE, NULL);
 }
 
-GtkWidget* mosaic_window_box_new_with_xwindow (Window win)
+GtkWidget* mosaic_window_box_new_with_xwindow (Position icon_position, int icon_size, Window win)
 {
-  return g_object_new (MOSAIC_TYPE_WINDOW_BOX, "is-window", TRUE, "xwindow", win, NULL);
+  gpointer result = g_object_new (MOSAIC_TYPE_WINDOW_BOX, "is-window", TRUE, "xwindow", win, NULL);
+  MosaicWindowBox *box = ((MosaicWindowBox *) result);
+  box->icon_position = icon_position;
+  box->icon_size = icon_size;
+  return result;
 }
 
-GtkWidget* mosaic_window_box_new_with_name (gchar *name)
+GtkWidget* mosaic_window_box_new_with_name (Position icon_position, int icon_size, gchar *name)
 {
-  return g_object_new (MOSAIC_TYPE_WINDOW_BOX, "is-window", FALSE, "name", name, NULL);
+  gpointer result = g_object_new (MOSAIC_TYPE_WINDOW_BOX, "is-window", FALSE, "name", name, NULL);
+  MosaicWindowBox *box = ((MosaicWindowBox *) result);
+  box->icon_position = icon_position;
+  box->icon_size = icon_size;
+  return result;
 }
 
 static void
@@ -280,7 +290,18 @@ mosaic_window_box_paint (MosaicWindowBox *box, cairo_t *cr, gint width, gint hei
     pango_layout_set_text (pl, desk, -1);
     pfd = pango_font_description_from_string (MOSAIC_BOX (box)->font);
     pango_font_description_set_weight (pfd, PANGO_WEIGHT_BOLD);
-    pango_font_description_set_size (pfd, (height-10) * PANGO_SCALE);
+
+    int font_size;
+    switch (box->icon_position) {
+    case TOP:
+      font_size = (height-10)/2;
+      break;
+    default:
+      font_size = height-10;
+      break;
+    }
+    pango_font_description_set_size (pfd, font_size * PANGO_SCALE);
+
     pango_layout_set_font_description (pl, pfd);
     pango_font_description_free (pfd);
 
@@ -292,7 +313,19 @@ mosaic_window_box_paint (MosaicWindowBox *box, cairo_t *cr, gint width, gint hei
     int pwidth, pheight;
     pango_layout_get_pixel_size (pl, &pwidth, &pheight);
 
-    cairo_move_to (cr, (width - pwidth)/2, (height - pheight)/2);
+    int x, y;
+    switch (box->icon_position) {
+    case TOP:
+      x = 5;
+      y = 5;
+      break;
+    default:
+      x = (width - pwidth)/2;
+      y = (height - pheight)/2;
+      break;
+    }
+    cairo_move_to (cr, x, y);
+
     pango_cairo_show_layout (cr, pl);
   }
 
@@ -303,16 +336,35 @@ mosaic_window_box_paint (MosaicWindowBox *box, cairo_t *cr, gint width, gint hei
       guint iwidth = gdk_pixbuf_get_width (box->icon_pixbuf);
       guint iheight = gdk_pixbuf_get_height (box->icon_pixbuf);
       cairo_save (cr);
-      cairo_set_source_surface (cr, box->icon_surface, 5, (height-iheight)/2);
-      cairo_rectangle (cr, 0, 0,
-		       iwidth+5,
-		       (height+iheight)/2);
+
+      switch (box->icon_position) {
+      case TOP: {
+        int y = 5;
+        if (iwidth < box->icon_size) {
+          y += (box->icon_size - iwidth) / 2;
+        }
+        cairo_set_source_surface (cr, box->icon_surface, (width-iwidth)/2, y);
+        cairo_rectangle (cr, (width-iwidth)/2, 0, iwidth+5, (height+iheight)/2);
+      } break;
+      default:
+        cairo_set_source_surface (cr, box->icon_surface, 5, (height-iheight)/2);
+        cairo_rectangle (cr, 0, 0, iwidth+5, (height+iheight)/2);
+        break;
+      }
+
       cairo_clip (cr);
       cairo_paint (cr);
       cairo_restore (cr);
 
       text_offset = iwidth+5;
-      pango_layout_set_width (pl, (width-iwidth-15) * PANGO_SCALE);
+      switch (box->icon_position) {
+      case TOP:
+        pango_layout_set_width (pl, (width-15) * PANGO_SCALE);
+        break;
+      default:
+        pango_layout_set_width (pl, (width-iwidth-15) * PANGO_SCALE);
+        break;
+      }
     }
   } else {
     pango_layout_set_width (pl, (width-15) * PANGO_SCALE);
@@ -334,16 +386,23 @@ mosaic_window_box_paint (MosaicWindowBox *box, cairo_t *cr, gint width, gint hei
     else
       cairo_set_source_rgba (cr, 0.0, 0.0, 0.0, 1.0);
 
-    if (text_offset > 0) {
-      if ((width-pwidth)/2 > text_offset+5)
-	cairo_move_to (cr, (width - pwidth)/2, (height - pheight)/2);
-      else
-	cairo_move_to (cr, text_offset+5, (height - pheight)/2);
-    } else {
-      if (width-5 > pwidth)
-	cairo_move_to (cr, (width - pwidth)/2, (height - pheight)/2);
-      else
-	cairo_move_to (cr, 5, (height - pheight)/2);
+    switch (box->icon_position) {
+    case TOP:
+      cairo_move_to (cr, (width - pwidth)/2, height - pheight - 10);
+      break;
+    default:
+      if (text_offset > 0) {
+        if ((width-pwidth)/2 > text_offset+5)
+          cairo_move_to (cr, (width - pwidth)/2, (height - pheight)/2);
+        else
+          cairo_move_to (cr, text_offset+5, (height - pheight)/2);
+      } else {
+        if (width-5 > pwidth)
+          cairo_move_to (cr, (width - pwidth)/2, (height - pheight)/2);
+        else
+          cairo_move_to (cr, 5, (height - pheight)/2);
+      }
+      break;
     }
 
     pango_cairo_show_layout (cr, pl);

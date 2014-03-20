@@ -30,6 +30,11 @@ G_BEGIN_DECLS
 typedef struct _MosaicWindowBox      MosaicWindowBox;
 typedef struct _MosaicWindowBoxClass MosaicWindowBoxClass;
 
+typedef enum {
+    LEFT,
+    TOP
+} Position;
+
 struct _MosaicWindowBox
 {
   MosaicBox parent;
@@ -51,6 +56,9 @@ struct _MosaicWindowBox
   GdkPixbuf *icon_pixbuf;
   cairo_t *icon_context;
   cairo_surface_t *icon_surface;
+
+  Position icon_position;
+  gint icon_size;
 };
 
 struct _MosaicWindowBoxClass
@@ -67,8 +75,8 @@ struct _MosaicWindowBoxClass
 
 GType mosaic_window_box_get_type (void);
 GtkWidget* mosaic_window_box_new (void);
-GtkWidget* mosaic_window_box_new_with_xwindow (Window win);
-GtkWidget* mosaic_window_box_new_with_name (gchar *name);
+GtkWidget* mosaic_window_box_new_with_xwindow (Position icon_position, int icon_size, Window win);
+GtkWidget* mosaic_window_box_new_with_name (Position icon_position, int icon_size, gchar *name);
 void mosaic_window_box_set_is_window (MosaicWindowBox *box, gboolean is_window);
 gboolean mosaic_window_box_get_is_window (MosaicWindowBox *box);
 void mosaic_window_box_set_xwindow (MosaicWindowBox *box, Window window);
