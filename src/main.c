@@ -213,7 +213,9 @@ int main (int argc, char **argv)
 
 #ifdef WIN32
   if (options.persistent) {
+#ifdef DEBUG
       g_printerr ("Installing Alt-Tab hook");
+#endif
       install_alt_tab_hook();
   }
 #endif
@@ -312,6 +314,7 @@ int main (int argc, char **argv)
   gtk_widget_show_all (window);
   gtk_widget_hide (search);
   gtk_window_present (GTK_WINDOW (window));
+  gtk_window_set_keep_above (GTK_WINDOW (window), TRUE);
   
   if (options.persistent)
     gtk_widget_hide (window);
@@ -336,7 +339,7 @@ int main (int argc, char **argv)
 	       options.box_width, options.box_height);
 
 #ifdef X11
-  // Window wil be shown on all desktops (and so hidden in windows list)
+  // Window will be shown on all desktops (and so hidden in windows list)
   unsigned int desk = 0xFFFFFFFF; // -1
   XChangeProperty(gdk_x11_get_default_xdisplay (), myown_window, a_NET_WM_DESKTOP, XA_CARDINAL,
 		  32, PropModeReplace, (unsigned char *)&desk, 1);
@@ -432,16 +435,22 @@ static void draw_mosaic (GtkLayout *where,
 static void on_rect_click (GtkWidget *widget, gpointer data)
 {
   MosaicWindowBox *box = MOSAIC_WINDOW_BOX (widget);
+
   if (!options.read_stdin) {
-    Window win = mosaic_window_box_get_xwindow (box);
-    switch_to_window (win);
+    gtk_widget_hide (window);
+    switch_to_window (mosaic_window_box_get_xwindow (box));
   } else {
     puts (mosaic_window_box_get_name (box));
   }
-  if (options.persistent)
-    gtk_widget_hide (window);
-  else
+
+  if (options.persistent) {
+    if (strlen (mosaic_search_box_get_text (MOSAIC_SEARCH_BOX (search)))) {
+      gtk_widget_hide (search);
+      mosaic_search_box_set_text (MOSAIC_SEARCH_BOX (search), "\0");
+    }
+  } else {
     gtk_main_quit ();
+  }
 }
 
 static void update_box_list ()
@@ -1159,7 +1168,7 @@ void tab_event (gboolean shift) //FIXME: put prototype for this function
       bsize = wsize;
     }
     if (bsize == 0) return; // nothing to switch between
-    // Calculate current box by straightforward pointer comprasion
+    // Calculate current box by straightforward pointer comparison
     guint current_box = 0;
     MosaicWindowBox* box = MOSAIC_WINDOW_BOX (gtk_window_get_focus (GTK_WINDOW (window)));
     for (guint i = 0; i < bsize; i++)
@@ -1177,6 +1186,6 @@ void tab_event (gboolean shift) //FIXME: put prototype for this function
     update_box_list();
     draw_mosaic (GTK_LAYOUT (layout), boxes, wsize, 0,
                  options.box_width, options.box_height);
-    gtk_widget_show (window);
+    gtk_window_present (GTK_WINDOW (window));
   }
 }

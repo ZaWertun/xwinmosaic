@@ -32,10 +32,10 @@ BOOL CALLBACK EnumWindowsProc(
   WINDOWINFO pwi;
   pwi.cbSize = sizeof(WINDOWINFO);
   GetWindowInfo(hwnd, &pwi);
-
-  if(((pwi.dwStyle)&WS_VISIBLE) && (pwi.dwStyle&WS_TILEDWINDOW) && (pwi.dwStyle&WS_TABSTOP)){
+if ((pwi.dwStyle & WS_VISIBLE) && !(pwi.dwStyle & WS_DISABLED) && (pwi.dwStyle & WS_SYSMENU))
+{
     if(g_strcmp0(get_window_name(hwnd), "XWinMosaic")){
-      window_list[(*((int*)num))++] = hwnd;
+        window_list[(*((int*)num))++] = hwnd;
     }
   }
   return 1;
@@ -70,7 +70,11 @@ gboolean already_opened()
 GdkPixbuf* get_window_icon(HWND win, guint req_width, guint req_height)
 {
   GdkPixbuf* gicon;
-  HICON icon = (HICON)SendMessage(win,WM_GETICON,ICON_SMALL,0);
+  HICON icon = (HICON)SendMessage(win,WM_GETICON,(req_width > 16) ? ICON_BIG : ICON_SMALL,0);
+  if(!icon)
+  {
+    icon = (HICON)SendMessage(win,WM_GETICON,ICON_SMALL,0);
+  }
   if(!icon)
   {
     icon = (HICON)GetClassLongPtr(win, GCL_HICON);
@@ -79,12 +83,9 @@ GdkPixbuf* get_window_icon(HWND win, guint req_width, guint req_height)
   {
     icon = (HICON)GetClassLongPtr(win, GCL_HICONSM);
   }
-  if(!icon)
-  {
-    icon = (HICON)SendMessage(win,WM_GETICON,ICON_BIG,0);
-  }
   gicon = gdk_win32_icon_to_pixbuf_libgtk_only(icon);
-  gicon = gdk_pixbuf_scale_simple(gicon, req_width, req_height, GDK_INTERP_BILINEAR);
+  if (gdk_pixbuf_get_width (gicon) > req_width)
+    gicon = gdk_pixbuf_scale_simple(gicon, req_width, req_height, GDK_INTERP_BILINEAR);
   return gicon;
 }
 
@@ -95,9 +96,11 @@ HWND* sorted_windows_list(HWND *myown, HWND *active_win, int *nitems)
   int size = 0;
   while(*(pre_win_list + size)) {
     GetWindowInfo(*(pre_win_list + size), &pwi);
-    printf("%s, %s, %x\n", get_window_name(*(pre_win_list + size)),
+#ifdef DEBUG
+    g_printerr ("%s, %s, %x\n", get_window_name(*(pre_win_list + size)),
            get_window_class(*(pre_win_list + size)),
            pwi.dwStyle);
+#endif
     size++;
   }
   *nitems = size;
@@ -115,7 +118,7 @@ void switch_to_window(HWND win)
      (wp.showCmd == SW_SHOWMINNOACTIVE))
     ShowWindow(win, SW_RESTORE);
   else
-    SwitchToThisWindow(win, FALSE);
+    SetForegroundWindow (win);
 }
 
 void tab_event (gboolean shift);
