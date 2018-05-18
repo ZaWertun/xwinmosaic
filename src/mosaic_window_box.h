@@ -27,8 +27,8 @@ G_BEGIN_DECLS
 #define MOSAIC_IS_WINDOW_BOX_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), MOSAIC_TYPE_WINDOW_BOX))
 #define MOSAIC_WINDOW_BOX_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), MOSAIC_TYPE_WINDOW_BOX, MosaicWindowBoxClass))
 
-#define CLOSE_BUTTON_RADIUS 7
-#define CLOSE_BUTTON_OFFSET 7
+#define CLOSE_BUTTON_SIZE   7
+#define CLOSE_BUTTON_OFFSET 5
 
 gboolean inside_close_button(int win_width, int win_height, gdouble x, gdouble y);
 
