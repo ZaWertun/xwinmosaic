@@ -2,7 +2,33 @@
  * mosaic_window_box.c - window box widget.
  */
 
+#include <math.h>
+
 #include "mosaic_window_box.h"
+
+typedef struct {
+    double r;
+    double g;
+    double b;
+} Color;
+
+static void color_set(Color *color, double r, double g, double b) {
+    color->r = r;
+    color->g = g;
+    color->b = b;
+}
+
+static void color_cairo_set(cairo_t *cr, Color c) {
+  cairo_set_source_rgb(cr, c.r, c.g, c.b);
+}
+
+gboolean inside_close_button(int win_width, int win_height, gdouble x, gdouble y) {
+  gboolean res;
+  // FIXME: now button is round
+  res = (x <= win_width - CLOSE_BUTTON_OFFSET) && (x >= win_width - (CLOSE_BUTTON_OFFSET + CLOSE_BUTTON_SIZE));
+  res = res && (y >= CLOSE_BUTTON_OFFSET) && (y <= CLOSE_BUTTON_OFFSET + CLOSE_BUTTON_SIZE);
+  return res;
+}
 
 enum {
   PROP_0,
@@ -27,6 +53,8 @@ static void mosaic_window_box_get_property (GObject *gobject,
 					    GParamSpec *pspec);
 
 static gboolean mosaic_window_box_expose_event (GtkWidget *widget, GdkEventExpose *event);
+static gboolean mosaic_window_box_motion_notify_event (GtkWidget *widget, GdkEventMotion *event);
+
 static void mosaic_window_box_paint (MosaicWindowBox *box, cairo_t *cr, gint width, gint height);
 static void mosaic_window_box_create_colors (MosaicWindowBox *box);
 static void mosaic_window_box_setup_icon (MosaicWindowBox *box, GdkPixbuf *pixbuf);
@@ -50,6 +78,7 @@ mosaic_window_box_class_init (MosaicWindowBoxClass *klass)
   gobject_class->get_property = mosaic_window_box_get_property;
 
   widget_class->expose_event = mosaic_window_box_expose_event;
+  widget_class->motion_notify_event = mosaic_window_box_motion_notify_event;
 
   obj_properties[PROP_IS_WINDOW] =
     g_param_spec_boolean ("is-window",
@@ -134,6 +163,7 @@ static GObject*	mosaic_window_box_constructor (GType gtype,
   box->color_offset = 0;
   box->icon_size = 0;
   box->icon_position = LEFT;
+  box->close_button_has_focus = FALSE;
   mosaic_window_box_create_colors (box);
 
   return obj;
@@ -259,6 +289,27 @@ mosaic_window_box_expose_event (GtkWidget *widget, GdkEventExpose *event)
   cairo_clip (cr);
   mosaic_window_box_paint (MOSAIC_WINDOW_BOX (widget), cr, widget->allocation.width, widget->allocation.height);
   cairo_destroy (cr);
+  return TRUE;
+}
+
+static gboolean
+mosaic_window_box_motion_notify_event (GtkWidget *widget, GdkEventMotion *event)
+{
+  g_return_val_if_fail (MOSAIC_IS_WINDOW_BOX (widget), FALSE);
+
+  MosaicWindowBox *box = MOSAIC_WINDOW_BOX (widget);
+  if (box->show_close_button) {
+    int win_width = gdk_window_get_width(event->window);
+    int win_height = gdk_window_get_height(event->window);
+    gboolean in_close_button = inside_close_button(win_width, win_height, event->x, event->y);
+    if ((in_close_button && !box->close_button_has_focus) ||
+        (!in_close_button && box->close_button_has_focus)) {
+      GdkRectangle rect = {.x = 0, .y = 0, .width = win_width, .height = win_height};
+      gdk_window_invalidate_rect(event->window, &rect, TRUE);
+      box->close_button_has_focus = in_close_button;
+    }
+  }
+
   return TRUE;
 }
 
@@ -407,6 +458,42 @@ mosaic_window_box_paint (MosaicWindowBox *box, cairo_t *cr, gint width, gint hei
 
     pango_cairo_show_layout (cr, pl);
   }
+
+  // Draw close button
+  if (box->show_close_button) {
+    gint box_size = CLOSE_BUTTON_SIZE;
+    gint offset = CLOSE_BUTTON_OFFSET;
+    gint x0 = width - (box_size + offset), x1 = x0 + box_size;
+    gint y0 = offset, y1 = y0 + box_size;
+
+    Color fill;
+    Color icon;
+    if (box->close_button_has_focus) {
+      color_set(&fill, 0.75, 0.01, 0.01);
+      color_set(&icon, 1, 1, 1);
+    } else {
+      color_set(&fill, 1, 1, 1);
+      color_set(&icon, 0.75, 0.01, 0.01);
+    }
+
+    color_cairo_set(cr, icon);
+    cairo_arc(cr, x0 + box_size / 2, y0 + box_size / 2, box_size / 2 + 1.5, 0, 2 * M_PI);
+    cairo_fill (cr);
+
+    color_cairo_set(cr, fill);
+    cairo_arc(cr, x0 + box_size / 2, y0 + box_size / 2, box_size / 2, 0, 2 * M_PI);
+    cairo_fill (cr);
+
+    color_cairo_set(cr, icon);
+    cairo_set_line_width (cr, 2);
+    cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
+    cairo_move_to (cr, x1 - 4, y0 + 4);
+    cairo_line_to (cr, x0 + 4, y1 - 4);
+    cairo_move_to (cr, x1 - 4, y1 - 4);
+    cairo_line_to (cr, x0 + 4, y0 + 4);
+    cairo_stroke (cr);
+  }
+
   g_object_unref (pl);
 
   mosaic_box_paint (MOSAIC_BOX (box), cr, width, height);
@@ -657,7 +744,7 @@ void mosaic_window_box_setup_icon_from_file (MosaicWindowBox *box, const gchar *
 
   GError *error = NULL;
   GdkPixbuf *pixbuf;
-  
+
   if(!(pixbuf = gdk_pixbuf_new_from_file_at_size (file, req_width, req_height, &error)))
     g_printerr("%s\n", error->message);
 
@@ -717,6 +804,13 @@ void mosaic_window_box_set_show_titles (MosaicWindowBox *box, gboolean show_titl
   box->show_titles = show_titles;
   if (!show_titles)
     gtk_widget_set_tooltip_text (GTK_WIDGET(box), MOSAIC_BOX(box)->name);
+}
+
+void mosaic_window_box_set_show_close_button (MosaicWindowBox *box, gboolean show_close_button)
+{
+  g_return_if_fail (MOSAIC_IS_WINDOW_BOX (box));
+
+  box->show_close_button = show_close_button;
 }
 
 void mosaic_window_box_set_color_offset (MosaicWindowBox *box, guchar color_offset)

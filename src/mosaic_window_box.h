@@ -27,6 +27,11 @@ G_BEGIN_DECLS
 #define MOSAIC_IS_WINDOW_BOX_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), MOSAIC_TYPE_WINDOW_BOX))
 #define MOSAIC_WINDOW_BOX_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), MOSAIC_TYPE_WINDOW_BOX, MosaicWindowBoxClass))
 
+#define CLOSE_BUTTON_SIZE   14
+#define CLOSE_BUTTON_OFFSET 7
+
+gboolean inside_close_button(int win_width, int win_height, gdouble x, gdouble y);
+
 typedef struct _MosaicWindowBox      MosaicWindowBox;
 typedef struct _MosaicWindowBoxClass MosaicWindowBoxClass;
 
@@ -46,6 +51,7 @@ struct _MosaicWindowBox
   gchar *opt_name;
   gboolean show_desktop;
   gboolean show_titles;
+  gboolean show_close_button;
   gint desktop;
 
   gboolean colorize;
@@ -59,6 +65,8 @@ struct _MosaicWindowBox
 
   Position icon_position;
   gint icon_size;
+
+  gboolean close_button_has_focus;
 };
 
 struct _MosaicWindowBoxClass
@@ -93,6 +101,7 @@ void mosaic_window_box_setup_icon_from_file (MosaicWindowBox *box, const gchar *
 void mosaic_window_box_set_colorize (MosaicWindowBox *box, gboolean colorize);
 void mosaic_window_box_set_show_desktop (MosaicWindowBox *box, gboolean show_desktop);
 void mosaic_window_box_set_show_titles (MosaicWindowBox *box, gboolean show_titles);
+void mosaic_window_box_set_show_close_button (MosaicWindowBox *box, gboolean show_close_button);
 void mosaic_window_box_set_color_offset (MosaicWindowBox *box, guchar color_offset);
 void mosaic_window_box_set_color_from_string (MosaicWindowBox *box, const gchar *color);
 gint mosaic_window_box_get_desktop (MosaicWindowBox *box);

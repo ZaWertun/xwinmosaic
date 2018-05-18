@@ -59,6 +59,7 @@ static struct {
   gboolean show_icons;
   gboolean show_desktop;
   gboolean show_titles;
+  gboolean show_close_button;
   guint icon_size;
   gchar *font;
   gboolean read_stdin;
@@ -132,7 +133,7 @@ static void draw_mosaic (GtkLayout *where,
 		  GtkWidget **widgets, int rsize,
 		  int focus_on,
 		  int rwidth, int rheight);
-static void on_rect_click (GtkWidget *widget, gpointer data);
+static void on_rect_click (GtkWidget *widget, GdkEventButton *event, gpointer userdata);
 static void update_box_list ();
 static gboolean on_key_press (GtkWidget *widget, GdkEventKey *event, gpointer data);
 #ifdef X11
@@ -437,13 +438,20 @@ static void draw_mosaic (GtkLayout *where,
   }
 }
 
-static void on_rect_click (GtkWidget *widget, gpointer data)
+static void on_rect_click (GtkWidget *widget, GdkEventButton *event, gpointer userdata)
 {
   MosaicWindowBox *box = MOSAIC_WINDOW_BOX (widget);
 
   if (!options.read_stdin) {
-    gtk_widget_hide (window);
-    switch_to_window (mosaic_window_box_get_xwindow (box));
+    int win_width = gdk_window_get_width(widget->window);
+    int win_height = gdk_window_get_height(widget->window);
+    if (inside_close_button(win_width, win_height, event->x, event->y)) {
+      kill_window(mosaic_window_box_get_xwindow(box));
+      return; // FIXME: remove?
+    } else {
+      gtk_widget_hide(window);
+      switch_to_window(mosaic_window_box_get_xwindow(box));
+    }
   } else {
     puts (mosaic_window_box_get_name (box));
   }
@@ -508,6 +516,7 @@ static void update_box_list ()
 	mosaic_window_box_set_show_desktop (MOSAIC_WINDOW_BOX (boxes[i]), options.show_desktop);
 #endif
 	mosaic_window_box_set_show_titles (MOSAIC_WINDOW_BOX (boxes[i]), options.show_titles);
+	mosaic_window_box_set_show_close_button(MOSAIC_WINDOW_BOX (boxes[i]), options.show_close_button);
 	if (options.show_icons)
 	  mosaic_window_box_setup_icon_from_wm (MOSAIC_WINDOW_BOX(boxes[i]), options.icon_size, options.icon_size);
       } else {
@@ -567,8 +576,7 @@ static void update_box_list ()
         if((entry.color)[0]=='#')
           mosaic_window_box_set_color_from_string(MOSAIC_WINDOW_BOX(boxes[i]), entry.color);
       }
-      g_signal_connect (G_OBJECT (boxes[i]), "clicked",
-			G_CALLBACK (on_rect_click), NULL);
+      g_signal_connect (G_OBJECT (boxes[i]), "button-press-event", G_CALLBACK (on_rect_click), NULL);
     }
   }
 }
@@ -998,6 +1006,7 @@ static void read_config ()
   options.show_icons = TRUE;
   options.show_desktop = TRUE;
   options.show_titles = TRUE;
+  options.show_close_button = FALSE;
   options.icon_size = 16;
   options.font = g_strdup ("Sans 10");
   options.read_stdin = FALSE;
@@ -1033,6 +1042,8 @@ static void read_config ()
       options.show_desktop = g_key_file_get_boolean (config, group, "show_desktop", &error);
     if (g_key_file_has_key (config, group, "show_titles", &error))
       options.show_titles = g_key_file_get_boolean (config, group, "show_titles", &error);
+    if (g_key_file_has_key (config, group, "show_close_button", &error))
+      options.show_close_button = g_key_file_get_boolean (config, group, "show_close_button", &error);
     if (g_key_file_has_key (config, group, "icon_size", &error))
       options.icon_size = g_key_file_get_integer (config, group, "icon_size", &error);
     if (g_key_file_has_key (config, group, "font", &error))

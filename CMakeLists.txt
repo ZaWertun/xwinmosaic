@@ -3,7 +3,7 @@ project (XWinMosaic C)
 
 OPTION (WITH_SCRIPTS "Install extra scripts" OFF)
 
-set (CMAKE_C_FLAGS "-std=c99 -Wall")
+set (CMAKE_C_FLAGS "-std=gnu99 -Wall")
 
 IF(WIN32)
   add_definitions("-DWIN32")
@@ -14,7 +14,7 @@ IF(UNIX)
   add_definitions("-DX11")
 ENDIF(UNIX)
 
-set (CMAKE_C_FLAGS_RELEASE "-O3")
+set (CMAKE_C_FLAGS_RELEASE "-O2")
 set (CMAKE_C_FLAGS_DEBUG "-g")
 
 add_subdirectory (src)

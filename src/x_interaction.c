@@ -263,6 +263,12 @@ Window* sorted_windows_list (Window *myown, Window *active_win, int *nitems)
   return NULL;
 }
 
+void kill_window (Window win)
+{
+  Display *dpy = (Display *)gdk_x11_get_default_xdisplay ();
+  XKillClient(dpy, win);
+}
+
 // Switch to window and it's desktop.
 void switch_to_window (Window win)
 {
