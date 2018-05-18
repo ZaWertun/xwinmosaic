@@ -447,7 +447,7 @@ static void on_rect_click (GtkWidget *widget, GdkEventButton *event, gpointer us
     int win_height = gdk_window_get_height(widget->window);
     if (inside_close_button(win_width, win_height, event->x, event->y)) {
       kill_window(mosaic_window_box_get_xwindow(box));
-      return; // FIXME: remove?
+      return;
     } else {
       gtk_widget_hide(window);
       switch_to_window(mosaic_window_box_get_xwindow(box));

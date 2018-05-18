@@ -22,12 +22,10 @@ static void color_cairo_set(cairo_t *cr, Color c) {
   cairo_set_source_rgb(cr, c.r, c.g, c.b);
 }
 
-gboolean inside_close_button(int win_width, int win_height, gdouble x, gdouble y) {
-  gboolean res;
-  // FIXME: now button is round
-  res = (x <= win_width - CLOSE_BUTTON_OFFSET) && (x >= win_width - (CLOSE_BUTTON_OFFSET + CLOSE_BUTTON_SIZE));
-  res = res && (y >= CLOSE_BUTTON_OFFSET) && (y <= CLOSE_BUTTON_OFFSET + CLOSE_BUTTON_SIZE);
-  return res;
+gboolean inside_close_button(int win_width, int win_height, double x, double y) {
+  int center_x = win_width - CLOSE_BUTTON_OFFSET - CLOSE_BUTTON_RADIUS;
+  int center_y = CLOSE_BUTTON_OFFSET + CLOSE_BUTTON_RADIUS;
+  return sqrt(pow(x - center_x, 2) + pow(y - center_y, 2)) <= CLOSE_BUTTON_RADIUS;
 }
 
 enum {
@@ -461,36 +459,37 @@ mosaic_window_box_paint (MosaicWindowBox *box, cairo_t *cr, gint width, gint hei
 
   // Draw close button
   if (box->show_close_button) {
-    gint box_size = CLOSE_BUTTON_SIZE;
+    gint c = 4;
+    gint radius = CLOSE_BUTTON_RADIUS;
     gint offset = CLOSE_BUTTON_OFFSET;
-    gint x0 = width - (box_size + offset), x1 = x0 + box_size;
-    gint y0 = offset, y1 = y0 + box_size;
+    gint x0 = width - (radius * 2 + offset), x1 = x0 + radius * 2;
+    gint y0 = offset, y1 = y0 + radius * 2;
 
     Color fill;
     Color icon;
     if (box->close_button_has_focus) {
-      color_set(&fill, 0.75, 0.01, 0.01);
+      color_set(&fill, 0, 0, 0);
       color_set(&icon, 1, 1, 1);
     } else {
       color_set(&fill, 1, 1, 1);
-      color_set(&icon, 0.75, 0.01, 0.01);
+      color_set(&icon, 0, 0, 0);
     }
 
     color_cairo_set(cr, icon);
-    cairo_arc(cr, x0 + box_size / 2, y0 + box_size / 2, box_size / 2 + 1.5, 0, 2 * M_PI);
+    cairo_arc(cr, x0 + radius, y0 + radius, radius + 1.5, 0, 2 * M_PI);
     cairo_fill (cr);
 
     color_cairo_set(cr, fill);
-    cairo_arc(cr, x0 + box_size / 2, y0 + box_size / 2, box_size / 2, 0, 2 * M_PI);
+    cairo_arc(cr, x0 + radius, y0 + radius, radius, 0, 2 * M_PI);
     cairo_fill (cr);
 
     color_cairo_set(cr, icon);
     cairo_set_line_width (cr, 2);
     cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
-    cairo_move_to (cr, x1 - 4, y0 + 4);
-    cairo_line_to (cr, x0 + 4, y1 - 4);
-    cairo_move_to (cr, x1 - 4, y1 - 4);
-    cairo_line_to (cr, x0 + 4, y0 + 4);
+    cairo_move_to (cr, x1 - c, y0 + c);
+    cairo_line_to (cr, x0 + c, y1 - c);
+    cairo_move_to (cr, x1 - c, y1 - c);
+    cairo_line_to (cr, x0 + c, y0 + c);
     cairo_stroke (cr);
   }
 
