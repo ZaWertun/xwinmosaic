@@ -36,9 +36,9 @@ typedef struct _MosaicWindowBox      MosaicWindowBox;
 typedef struct _MosaicWindowBoxClass MosaicWindowBoxClass;
 
 typedef enum {
-    LEFT,
-    TOP
-} Position;
+    ICON_POSITION_LEFT,
+    ICON_POSITION_TOP
+} IconPosition;
 
 struct _MosaicWindowBox
 {
@@ -63,7 +63,7 @@ struct _MosaicWindowBox
   cairo_t *icon_context;
   cairo_surface_t *icon_surface;
 
-  Position icon_position;
+  IconPosition icon_position;
   gint icon_size;
 
   gboolean close_button_has_focus;
@@ -83,8 +83,8 @@ struct _MosaicWindowBoxClass
 
 GType mosaic_window_box_get_type (void);
 GtkWidget* mosaic_window_box_new (void);
-GtkWidget* mosaic_window_box_new_with_xwindow (Position icon_position, int icon_size, Window win);
-GtkWidget* mosaic_window_box_new_with_name (Position icon_position, int icon_size, gchar *name);
+GtkWidget* mosaic_window_box_new_with_xwindow (IconPosition icon_position, int icon_size, Window win);
+GtkWidget* mosaic_window_box_new_with_name (IconPosition icon_position, int icon_size, gchar *name);
 void mosaic_window_box_set_is_window (MosaicWindowBox *box, gboolean is_window);
 gboolean mosaic_window_box_get_is_window (MosaicWindowBox *box);
 void mosaic_window_box_set_xwindow (MosaicWindowBox *box, Window window);

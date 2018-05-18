@@ -75,7 +75,7 @@ static struct {
   gint center_x;
   gint center_y;
   gchar *color_file;
-  Position icon_position;
+  IconPosition icon_position;
   gint selected;
 } options;
 
@@ -999,20 +999,22 @@ static void read_config ()
 {
   // Set default options.
   options.vim_mode = FALSE;
-  options.box_width = 200;
-  options.box_height = 40;
+  options.box_width = 160;
+  options.box_height = 80;
   options.colorize = TRUE;
   options.color_offset = 0;
   options.show_icons = TRUE;
   options.show_desktop = TRUE;
   options.show_titles = TRUE;
-  options.show_close_button = FALSE;
-  options.icon_size = 16;
+  options.show_close_button = TRUE;
+  options.icon_size = 48;
+  options.icon_position = ICON_POSITION_TOP;
   options.font = g_strdup ("Sans 10");
   options.read_stdin = FALSE;
   options.screenshot = FALSE;
   options.screenshot_offset_x = 0;
   options.screenshot_offset_y = 0;
+  options.at_pointer = TRUE;
 
   gchar *filename = g_strjoin ("/", g_get_user_config_dir (), "xwinmosaic/config", NULL);
 
@@ -1061,7 +1063,7 @@ static void read_config ()
     if (g_key_file_has_key (config, group, "icon_position", &error)) {
       gchar *tmp = g_key_file_get_string (config, group, "icon_position", &error);
       if (strcmp(tmp, "top") == 0) {
-        options.icon_position = TOP;
+        options.icon_position = ICON_POSITION_TOP;
       }
     }
   }
@@ -1069,13 +1071,14 @@ static void read_config ()
   g_key_file_free (config);
 }
 
-static const char *position_to_str(Position position)
+static const char *position_to_str(IconPosition position)
 {
   switch (position) {
-  case TOP:
-    return "top";
-  default:
-    return "left";
+    case ICON_POSITION_TOP:
+      return "top";
+
+    default:
+      return "left";
   }
 }
 
@@ -1102,8 +1105,7 @@ static void write_default_config ()
       fprintf (config, "screenshot_offset_x = %d\n", options.screenshot_offset_x);
       fprintf (config, "screenshot_offset_y = %d\n", options.screenshot_offset_y);
       fprintf (config, "at_pointer = %s\n", (options.at_pointer) ? "true" : "false");
-      fprintf (config, "# icon_position can be one of: top, left");
-      fprintf (config, "icon_position = %s\n", position_to_str (options.icon_position));
+      fprintf (config, "icon_position = %s # `top` or `left`\n", position_to_str (options.icon_position));
       fprintf (config, "# color_file = /path/to/file\n");
       fclose (config);
       }
