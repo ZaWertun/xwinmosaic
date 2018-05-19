@@ -263,10 +263,18 @@ Window* sorted_windows_list (Window *myown, Window *active_win, int *nitems)
   return NULL;
 }
 
-void kill_window (Window win)
+void close_window (Window win)
 {
-  Display *dpy = (Display *)gdk_x11_get_default_xdisplay ();
-  XKillClient(dpy, win);
+  Display *dpy = gdk_x11_get_default_xdisplay ();
+  XEvent event;
+  memset(&event, 0, sizeof (event));
+  event.xclient.type = ClientMessage;
+  event.xclient.window = win;
+  event.xclient.message_type = XInternAtom(dpy, "WM_PROTOCOLS", TRUE);
+  event.xclient.format = 32;
+  event.xclient.data.l[0] = XInternAtom(dpy, "WM_DELETE_WINDOW", FALSE);
+  event.xclient.data.l[1] = CurrentTime;
+  XSendEvent(dpy, win, False, NoEventMask, &event);
 }
 
 // Switch to window and it's desktop.
