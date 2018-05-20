@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
+#include <X11/Xutil.h>
 #include "x_interaction.h"
 
 // Initialize Xatoms values.
@@ -138,10 +139,15 @@ char* get_window_name (Window win)
 
 char* get_window_class (Window win)
 {
-  char *wm_class = (char *) property (win, a_WM_CLASS, XA_STRING, NULL);
-  if (wm_class)
-    return wm_class;
-
+  Display *dpy = gdk_x11_get_default_xdisplay ();
+  XClassHint class_hint;
+  Status status = XGetClassHint(dpy, win, &class_hint);
+  if (status) {
+    if (class_hint.res_class)
+      return g_strdup (class_hint.res_class);
+    else if (class_hint.res_name)
+      return g_strdup (class_hint.res_name);
+  }
   return g_strdup ("<empty>");
 }
 
