@@ -20,7 +20,6 @@ nice-looking colours and has some set of helpful features.
 %setup -q
 
 %build
-%__sed -i 's|set (CMAKE_C_FLAGS "-std=c99 -Wall")|set (CMAKE_C_FLAGS "-std=c99 -Wall \${CMAKE_C_FLAGS}")|' CMakeLists.txt
 %cmake .
 %make_build
 
