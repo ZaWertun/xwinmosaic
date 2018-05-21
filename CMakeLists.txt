@@ -3,7 +3,7 @@ project (XWinMosaic C)
 
 OPTION (WITH_SCRIPTS "Install extra scripts" OFF)
 
-set (CMAKE_C_FLAGS "-std=gnu99 -Wall")
+set (CMAKE_C_FLAGS "-std=c99 -Wall ${CMAKE_C_FLAGS}")
 
 IF(WIN32)
   add_definitions("-DWIN32")

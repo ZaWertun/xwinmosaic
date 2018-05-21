@@ -313,7 +313,7 @@ mosaic_window_box_paint (MosaicWindowBox *box, cairo_t *cr, gint width, gint hei
 
   /* Shall we draw the desktop number */
   if (box->show_desktop) {
-    gchar desk [4] = { 0 };
+    gchar desk [11] = { 0 };
     if (box->desktop > -1)
       sprintf (desk, "%d", box->desktop+1);
     else
