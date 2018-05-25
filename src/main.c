@@ -48,7 +48,7 @@ static guint boxes_drawn;
 /* for screenshot mode */
 static gboolean key_pressed;
 
-static GKeyFile *color_config;
+static GKeyFile *color_config = NULL;
 static gchar **fallback_colors;
 static gsize fallback_size;
 
@@ -146,7 +146,7 @@ static GdkPixbuf* get_screenshot ();
 static void read_config ();
 static void write_default_config ();
 static void on_focus_change (GtkWidget *widget, GdkEventFocus *event, gpointer data);
-static void read_colors ();
+static void read_colors (const char* file);
 static gboolean parse_format (Entry *entry, gchar *data);
 void tab_event (gboolean shift);
 
@@ -212,8 +212,14 @@ int main (int argc, char **argv)
 #endif
   }
 
-  if (options.color_file)
-    read_colors ();
+  if (options.color_file) {
+    read_colors (options.color_file);
+  } else {
+    gchar *colorfile = g_strjoin ("/", g_get_user_config_dir (), "xwinmosaic/colors", NULL);
+    if (access (colorfile, F_OK | R_OK) != -1) {
+      read_colors (colorfile);
+    }
+  }
 
 #ifdef WIN32
   if (options.persistent) {
@@ -550,7 +556,7 @@ static void update_box_list ()
       mosaic_box_set_font (MOSAIC_BOX (boxes [i]), options.font);
       mosaic_window_box_set_colorize (MOSAIC_WINDOW_BOX (boxes[i]), options.colorize);
       mosaic_window_box_set_color_offset (MOSAIC_WINDOW_BOX (boxes[i]), options.color_offset);
-      if (options.colorize && options.color_file) {
+      if (options.colorize && color_config) {
 	gchar *color = NULL;
 	if (!options.read_stdin) {
 	  const gchar *wm_class = mosaic_window_box_get_opt_name (MOSAIC_WINDOW_BOX (boxes[i]));
@@ -1127,13 +1133,13 @@ static void on_focus_change (GtkWidget *widget, GdkEventFocus *event, gpointer d
   }
 }
 
-static void read_colors ()
+static void read_colors (const char* file)
 {
 
   GError *error = NULL;
   color_config = g_key_file_new ();
 
-  if (!g_key_file_load_from_file (color_config, options.color_file, 0, &error)) {
+  if (!g_key_file_load_from_file (color_config, file, G_KEY_FILE_NONE, &error)) {
     g_printerr ("%s\n", error->message);
     return;
   }

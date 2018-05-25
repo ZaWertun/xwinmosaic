@@ -73,6 +73,8 @@ Other distributions/for development:
 
 ### Color file format:
 
+Color file can also be stored at path `~/.config/xwinmosaic/colors`.
+
 	[colors]
 	# Use xprop to determine window class
 	WindowClass1 = #112233
