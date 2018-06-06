@@ -133,7 +133,8 @@ static void draw_mosaic (GtkLayout *where,
 		  GtkWidget **widgets, int rsize,
 		  int focus_on,
 		  int rwidth, int rheight);
-static void on_rect_click (GtkWidget *widget, GdkEventButton *event, gpointer userdata);
+static void on_rect_click (GtkWidget *widget, gpointer userdata);
+static void on_rect_press (GtkWidget *widget, GdkEventButton *event, gpointer userdata);
 static void update_box_list ();
 static gboolean on_key_press (GtkWidget *widget, GdkEventKey *event, gpointer data);
 #ifdef X11
@@ -444,14 +445,19 @@ static void draw_mosaic (GtkLayout *where,
   }
 }
 
-static void on_rect_click (GtkWidget *widget, GdkEventButton *event, gpointer userdata)
+static void on_rect_click (GtkWidget *widget, gpointer userdata)
+{
+  on_rect_press(widget, NULL, NULL);
+}
+
+static void on_rect_press (GtkWidget *widget, GdkEventButton *event, gpointer userdata)
 {
   MosaicWindowBox *box = MOSAIC_WINDOW_BOX (widget);
 
   if (!options.read_stdin) {
     int win_width = gdk_window_get_width(widget->window);
     int win_height = gdk_window_get_height(widget->window);
-    if (inside_close_button(win_width, win_height, event->x, event->y)) {
+    if (event && inside_close_button(win_width, win_height, event->x, event->y)) {
       close_window(mosaic_window_box_get_xwindow(box));
       return;
     } else {
@@ -582,7 +588,8 @@ static void update_box_list ()
         if((entry.color)[0]=='#')
           mosaic_window_box_set_color_from_string(MOSAIC_WINDOW_BOX(boxes[i]), entry.color);
       }
-      g_signal_connect (G_OBJECT (boxes[i]), "button-press-event", G_CALLBACK (on_rect_click), NULL);
+      g_signal_connect (G_OBJECT (boxes[i]), "clicked", G_CALLBACK (on_rect_click), NULL);
+      g_signal_connect (G_OBJECT (boxes[i]), "button-press-event", G_CALLBACK (on_rect_press), NULL);
     }
   }
 }
