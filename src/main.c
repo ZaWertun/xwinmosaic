@@ -77,6 +77,7 @@ static struct {
   gchar *color_file;
   IconPosition icon_position;
   gint selected;
+  gboolean only_current;
 } options;
 
 typedef struct {
@@ -125,6 +126,8 @@ static GOptionEntry entries [] =
     "Set color hue offset (from 0 to 255)", "<int>" },
   { "color-file", 'F', 0, G_OPTION_ARG_FILENAME, &options.color_file,
     "Pick colors from file", "<file>" },
+  { "only-current", 'c', 0, G_OPTION_ARG_NONE, &options.only_current,
+    "Only show windows on the current workspace.", NULL},
   { NULL }
 };
 
@@ -490,7 +493,7 @@ static void update_box_list ()
       XFree (wins);
 #endif
     }
-    wins = sorted_windows_list (&myown_window, active_window, &wsize);
+    wins = sorted_windows_list (&myown_window, active_window, &wsize, options.only_current);
 #ifdef X11
     if (wins) {
       // Get PropertyNotify events from each relevant window.
